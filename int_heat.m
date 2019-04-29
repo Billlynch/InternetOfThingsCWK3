@@ -69,6 +69,8 @@ t_ch=[t_ch,t_st]; T=[T,Tc]; conv=0;
 for i=1:n_h
    if (Tc(i) > T0(i) && Tc(i) < (To(i)+Theta-DTint)) % if the temp is in the range to have a choice
        therm(i) = round(rand); % make the choice
+   else
+       therm(i) = 0;
    end
 end
 
