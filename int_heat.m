@@ -37,24 +37,30 @@ E(1:n_e,1)=0;
 P(1:n_e,1)=0;
 rng('shuffle','multFibonacci');
 therm=randi([0,1],1,n_h);
+
+lowestTemp = Tint - DTint; % calculate T(~)int 
+
+%% Set the current temp to be the init temp + some amount between 0 and Theta
 for i=1:n_h
    T0(i)=Tint+Theta*rand;
-   if(T0(i)==Tint && therm(i)==0) 
-      therm(i)=1;
+   if(T0(i)==Tint && therm(i)==0) % if at lowest temp and thermostat off
+      therm(i)=1; % turn it on
    end
-   if(T0(i)==Tint+Theta && them(i)==1)
-      therm(i)=0;
+   if(T0(i)==Tint+Theta && them(i)==1) %if at highest temp and thermostat on
+      therm(i)=0; % turn it off
    end
 end
 T=T0';
 
-%% initial cool down or heat up to Tint for each home
+%% initial setup of temp history
 for i=1:n_h
    if(therm(i)==0)   %  the home is cooling down
-      t_st(i,1)=(T0(i)-Tint)/tau_c; therm(i)=1;
+      t_st(i,1)=(T0(i)-Tint)/tau_c;
+      therm(i)=1;
       Tc(i,1)=Tint;
    else   %  the home is heating up
-      t_st(i,1)=(Tint+Theta-T0(i))/tau_h; therm(i)=0;
+      t_st(i,1)=(Tint+Theta-T0(i))/tau_h;
+      therm(i)=0;
       Tc(i,1)=Tint+Theta;
       n_l=1; n_u=ceil(t_st(i,1)*1000);
       E(n_l:n_u,1)=E(n_l:n_u,1)+1;
@@ -64,10 +70,10 @@ t_ch=[t_ch,t_st]; T=[T,Tc]; conv=0;
 
 
 %% here time = 0 and we have the initial temps so if partical mode then 
- % split into the two groups and randomise the first
- 
+ % split into the two groups and randomise the first group, turn the second
+ % group off.
 for i=1:n_h
-   if (Tc(i) > T0(i) && Tc(i) < (To(i)+Theta-DTint)) % if the temp is in the range to have a choice
+   if (Tc(i) > T0(i) && Tc(i) < (T0(i)+Theta-DTint)) % if the temp is in the range to have a choice
        therm(i) = round(rand); % make the choice
    else
        therm(i) = 0;
@@ -97,12 +103,12 @@ while(conv==0)
             t_st(i,1)=t_end; 
          end
          n_u=ceil(t_st(i,1)*1000);
-         E(n_l:n_u,1)=E(n_l:n_u,1)+1;
+         E(n_l:n_u,1)=E(n_l:n_u,1)+1; % update the power being used for this house
       end
       
       % choose mode: 0 = default (alternate), 1 = complete, 2 = partical
       if(mode == 0)
-          
+          % this is what was already here
         if(therm(i)==0) 
           therm(i)=1;
         else
@@ -110,16 +116,20 @@ while(conv==0)
         end
         
       elseif(mode == 1)
-        
-        if(Tc(i) > T0(i))
-          therm(i)=0;
-        elseif(Tc(i) < T0(i)+Theta)
+        % this is keeping in the range with complete on/off
+        if(Tc(i) < lowestTemp)
           therm(i)=1;
+        elseif(Tc(i) > T0(i)+Theta)
+          therm(i)=0;
         end
         
       elseif(mode == 2)
-         
-          
+         % this is keeping in the range with partial on/off
+        if(Tc(i) < lowestTemp)
+          therm(i)=1;
+        elseif(Tc(i) > lowestTemp+Theta)
+          therm(i)=0;
+        end
           
       end
       
@@ -131,7 +141,7 @@ while(conv==0)
 end
 
 
-%% calculate E and P (power and overall power) for each home
+%% calculate P (overall power) for each home
 for i=1:n_e
    if(i>1) 
       P(i)=P(i-1)+0.001*E(i); 
