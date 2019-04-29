@@ -15,6 +15,16 @@ mode=input('Input the mode to use (0 = default (alternate), 1 = complete, 2 = pa
 %t_h=Theta*tau_h; t_c=Theta*tau_c; t_p=t_h+t_c;
 %
 
+
+%% ensure theta is greater than Tint if partical 
+if (mode == 2)
+    if (Theta < Tint)
+        disp('Theta not big enough!')
+        return
+    end
+end
+
+
 %% setup 
 therm(1:n_h)=0;           %  thermostat on/off  
 T0(1:n_h)=0;              %  initial temperature
@@ -38,7 +48,7 @@ for i=1:n_h
 end
 T=T0';
 
-%% cool down or heat up to Tint for each home
+%% initial cool down or heat up to Tint for each home
 for i=1:n_h
    if(therm(i)==0)   %  the home is cooling down
       t_st(i,1)=(T0(i)-Tint)/tau_c; therm(i)=1;
@@ -51,6 +61,17 @@ for i=1:n_h
    end
 end
 t_ch=[t_ch,t_st]; T=[T,Tc]; conv=0;
+
+
+%% here time = 0 and we have the initial temps so if partical mode then 
+ % split into the two groups and randomise the first
+ 
+for i=1:n_h
+   if (Tc(i) > T0(i) && Tc(i) < (To(i)+Theta-DTint)) % if the temp is in the range to have a choice
+       therm(i) = round(rand); % make the choice
+   end
+end
+
 
 
 %% simulation
@@ -96,7 +117,7 @@ while(conv==0)
         
       elseif(mode == 2)
          
-          %to complete
+          
           
       end
       
