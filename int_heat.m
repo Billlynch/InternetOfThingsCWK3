@@ -9,6 +9,8 @@ tau_c=input('Input the cooling constant tau_c [C/h]: ');
 t_end=input('Input the simulation time [h]: ');
 n_h=input('Input the number of homes n_h: '); 
 samp=input('Input the sample home index: ');
+mode=input('Input the mode to use (0 = default (alternate), 1 = complete, 2 = partical): ');
+
 %
 %t_h=Theta*tau_h; t_c=Theta*tau_c; t_p=t_h+t_c;
 %
@@ -74,11 +76,30 @@ while(conv==0)
          n_u=ceil(t_st(i,1)*1000);
          E(n_l:n_u,1)=E(n_l:n_u,1)+1;
       end
-      if(therm(i)==0) 
-         therm(i)=1;
-      else
-         therm(i)=0;
+      
+      % choose mode: 0 = default (alternate), 1 = complete, 2 = partical
+      if(mode == 0)
+          
+        if(therm(i)==0) 
+          therm(i)=1;
+        else
+          therm(i)=0;
+        end
+        
+      elseif(mode == 1)
+        
+        if(Tc(i) > T0(i))
+          therm(i)=0;
+        elseif(Tc(i) < T0(i)+Theta)
+          therm(i)=1;
+        end
+        
+      elseif(mode == 2)
+         
+          %to complete
+          
       end
+      
       if(t_st(i,1)<t_end)  %% if end of time for sim then end
          conv=0;
       end
