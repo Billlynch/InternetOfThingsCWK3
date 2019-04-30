@@ -40,7 +40,7 @@ therm=randi([0,1],1,n_h);
 
 lowestTemp = Tint - DTint; % calculate T(~)int 
 
-%% Set the current temp to be the init temp + some amount between 0 and Theta
+%% Set the current temp to be the init temp + some amount between 0 and Thsheta
 for i=1:n_h
    T0(i)=Tint+Theta*rand;
    if(T0(i)==Tint && therm(i)==0) % if at lowest temp and thermostat off
@@ -115,16 +115,8 @@ while(conv==0)
           therm(i)=0;
         end
         
-      elseif(mode == 1)
+      elseif(mode == 1 || mode == 2)
         % this is keeping in the range with complete on/off
-        if(Tc(i) < lowestTemp)
-          therm(i)=1;
-        elseif(Tc(i) > T0(i)+Theta)
-          therm(i)=0;
-        end
-        
-      elseif(mode == 2)
-         % this is keeping in the range with partial on/off
         if(Tc(i) < lowestTemp)
           therm(i)=1;
         elseif(Tc(i) > lowestTemp+Theta)
