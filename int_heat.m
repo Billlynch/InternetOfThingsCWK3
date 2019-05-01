@@ -18,7 +18,7 @@ mode=input('Input the mode to use (0 = default (alternate), 1 = complete, 2 = pa
 
 %% ensure theta is greater than Tint if partical 
 if (mode == 2)
-    if (Theta < Tint)
+    if (Theta <= DTint)
         disp('Theta not big enough!')
         return
     end
@@ -52,34 +52,50 @@ for i=1:n_h
 end
 T=T0';
 
+%% here time = 0 and we have the initial temps so if partical mode then 
+ % split into the two groups and randomise the first group, turn the second
+ % group off.
+ if (mode == 1)
+    for i=1:n_h
+        therm(i) = 0;
+    end
+ elseif (mode == 2)
+    for i=1:n_h
+       if (T0(i) > Tint && T0(i) < lowestTemp + Theta) % if the temp is in the range to have a choice
+           therm(i) = round(rand); % make the choice
+       else
+           therm(i) = 0;
+       end
+    end
+ end
+
+
 %% initial setup of temp history
 for i=1:n_h
    if(therm(i)==0)   %  the home is cooling down
-      t_st(i,1)=(T0(i)-Tint)/tau_c;
-      therm(i)=1;
-      Tc(i,1)=Tint;
+        if (mode == 0)
+             t_st(i,1)=(T0(i)-Tint)/tau_c; therm(i)=1;
+             Tc(i,1)=Tint;
+        else
+             t_st(i,1)=(T0(i)-lowestTemp)/tau_c; therm(i)=1;
+             Tc(i,1)=lowestTemp;
+         end
    else   %  the home is heating up
-      t_st(i,1)=(Tint+Theta-T0(i))/tau_h;
       therm(i)=0;
-      Tc(i,1)=Tint+Theta;
+      if (mode == 0)
+        t_st(i,1)=(Tint+Theta-T0(i))/tau_h;
+        Tc(i,1)=Tint+Theta;
+      else 
+         t_st(i,1)=((lowestTemp+Theta)-T0(i))/tau_h;
+         Tc(i,1)=lowestTemp + Theta;
+     end
       n_l=1; n_u=ceil(t_st(i,1)*1000);
       E(n_l:n_u,1)=E(n_l:n_u,1)+1;
    end
 end
-t_ch=[t_ch,t_st]; T=[T,Tc]; conv=0;
-
-
-%% here time = 0 and we have the initial temps so if partical mode then 
- % split into the two groups and randomise the first group, turn the second
- % group off.
-for i=1:n_h
-   if (Tc(i) > T0(i) && Tc(i) < (T0(i)+Theta-DTint)) % if the temp is in the range to have a choice
-       therm(i) = round(rand); % make the choice
-   else
-       therm(i) = 0;
-   end
-end
-
+t_ch=[t_ch,t_st];
+T=[T,Tc];
+conv=0;
 
 
 %% simulation
@@ -88,7 +104,11 @@ while(conv==0)
    for i=1:n_h 
       if(therm(i)==0 && t_st(i,1)<t_end)   %  cooling down next
          t_st(i,1)=t_st(i,1)+Theta/tau_c; 
-         Tc(i,1)=Tint;
+         if (mode == 0)
+             Tc(i,1)=Tint;
+         else
+             Tc(i,1)=Tint-DTint;
+         end
          if(t_st(i,1)>t_end)
             Tc(i,1)=Tc(i,1)+(t_st(i,1)-t_end)*tau_c; 
             t_st(i,1)=t_end;  
@@ -97,7 +117,11 @@ while(conv==0)
       if(therm(i)==1 && t_st(i,1)<t_end)   %  heating up next
          n_l=floor(t_st(i,1)*1000); 
          t_st(i,1)=t_st(i,1)+Theta/tau_h; 
-         Tc(i,1)=Tint+Theta;
+         if (mode == 0)
+            Tc(i,1)=Tint+Theta;
+         else 
+             Tc(i,1)=Tint+Theta-DTint;
+         end
          if(t_st(i,1)>t_end)
             Tc(i,1)=Tc(i,1)-(t_st(i,1)-t_end)*tau_h;
             t_st(i,1)=t_end; 
@@ -106,24 +130,11 @@ while(conv==0)
          E(n_l:n_u,1)=E(n_l:n_u,1)+1; % update the power being used for this house
       end
       
-      % choose mode: 0 = default (alternate), 1 = complete, 2 = partical
-      if(mode == 0)
-          % this is what was already here
         if(therm(i)==0) 
           therm(i)=1;
         else
           therm(i)=0;
         end
-        
-      elseif(mode == 1 || mode == 2)
-        % this is keeping in the range with complete on/off
-        if(Tc(i) < lowestTemp)
-          therm(i)=1;
-        elseif(Tc(i) > lowestTemp+Theta)
-          therm(i)=0;
-        end
-          
-      end
       
       if(t_st(i,1)<t_end)  %% if end of time for sim then end
          conv=0;
